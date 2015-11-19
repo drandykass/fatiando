@@ -12,6 +12,7 @@ Gravity and magnetics (``fatiando.gravmag``)
 
     gravmag.harvester.rst
     gravmag.prism.rst
+    gravmag.prism_fourier.rst
     gravmag.polyprism.rst
     gravmag.sphere.rst
     gravmag.tesseroid.rst

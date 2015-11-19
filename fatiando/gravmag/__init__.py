@@ -9,6 +9,8 @@ The forward modeling modules provide ways to calculate the gravitational and
 magnetic field of various types of geometric objects:
 
 * :mod:`~fatiando.gravmag.prism`: 3D right rectangular prisms
+* :mod:`~fatiando.gravmag.prism_fourier`: 3D right rectangular prism in the
+  Fourier Domain
 * :mod:`~fatiando.gravmag.polyprism`: 3D prisms with polygonal horizontal
   cross-sections
 * :mod:`~fatiando.gravmag.sphere`: Spheres in Cartesian coordinates

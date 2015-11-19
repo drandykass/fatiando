@@ -1,8 +1,8 @@
 r"""
-Calculate the F.D. expression of the potentials of a 3D right-rectangular prism
+Calculate the Fourier Domain expression of the potentials of a 3D right-rectangular prism.
 
-.. note:: All input units are SI.  Output is in conventional units: SI for the
-    gravitational potential, mGal for gravity, Eotvos for gravity gradients, nT
+.. note:: All input units are SI.  Output is in conventional units: SI for the 
+    gravitational potential, mGal for gravity, Eotvos for gravity gradients, nT 
     for magnetic total field anomalies.
 
 .. note:: The coordinate system of the input parameters is x -> North,
@@ -14,25 +14,35 @@ The gravitational fields are calculated based on the transform of the integral
 equation solution.  This is similar, but not identical, to the derivation by
 Bhattacharyya and Navolio (1976).
 
-Let :math:\tilde{\phi}(x,y,z) be the generic Fourier domain description of 
+Let :math:`\tilde{\phi}(x,y,z)` be the generic Fourier domain description of 
 potential of a point source (a function that decays linearly with distance).
 That is, 
-:math:\phi(\mathbf{r})=\frac{1}{r}=\frac{1}{(x^2+y^2+(z-h)^2)^{1/2}}
+
+.. math:: \phi(\mathbf{r})=\frac{1}{r}=\frac{1}{(x^2+y^2+(z-h)^2)^{1/2}}
+
 with 
-:math:\tilde{\phi}(\omega_x,\omega_y,z)=F[\phi(r)]
-with :math:F[\cdot] denoting the Fourier Transform.
-:math:\tilde{\phi}=\frac{\exp{-(h-z)\omega_r}{\omega_r}
-where :math:\omega_r is the radial wavenumber.
+
+.. math:: \tilde{\phi}(\omega_x,\omega_y,z)=F[\phi(r)]
+
+and :math:`F[\cdot]` denoting the Fourier Transform.
+
+.. math:: \tilde{\phi}=\frac{\exp{-(h-z)\omega_r}{\omega_r}
+
+where :math:`\omega_r` is the radial wavenumber.
 
 The expressions for the gravity and magnetic fields, as well as their
 gradients, can be derived by multiplication by the appropriate Fourier-Domain
 operator.  Thus
-:math:\tilde{g_z}=\omega_r\tilde{\phi}
-:math:\tilde{g_x}=i\omega_x\tilde{\phi}
+
+.. math::
+    
+    \tilde{g_z}=\omega_r\tilde{\phi}
+
+    \tilde{g_x}=i\omega_x\tilde{\phi}
+
 and so forth.
 
 Generalization to a prism involves solving the volume integral over the prism.
-
 
 Available functions are:
 
@@ -48,6 +58,7 @@ Available functions are:
 * :func:`~fatiando.gravmag.prism_fourier.gzz`
 
 **Magnetic**
+
 Available fields are the total-field anomaly and x,y,z, components of the 
 magnetic induction:
 
@@ -57,6 +68,7 @@ magnetic induction:
 * :func:`~fatiando.gravmag.prism_fourier.tf`
 
 **References**
+
 Bhattacharyya, B.K., and M.E. Navolio (1976), A Fast Fourier Transform Method
 for Rapid Computation of Gravity and Magnetic Anomalies Due to Arbitrary
 Bodies: Geophysical Prospecting, 24, 633-649.
@@ -66,7 +78,7 @@ Bodies: Geophysical Prospecting, 24, 633-649.
 
 import numpy as np
 import transform
-from ..constants import G, SI2EOTVOS, CM T2NT SI2MGAL
+from ..constants import G, SI2EOTVOS, CM, T2NT, SI2MGAL
 
 def potential(xp, yp, zp, prisms, dens=None):
     """
