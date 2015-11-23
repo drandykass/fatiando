@@ -8,6 +8,10 @@ Calculate the Fourier Domain expression of the potentials of a 3D right-rectangu
 .. note:: The coordinate system of the input parameters is x -> North,
     y -> East, and z -> Down.
 
+.. note:: Because the modelling is done is the Fourier domain, it is 
+    assumed that the data observation locations are regularly gridded
+    and the number of observations in each location is a power of 2.
+
 **Background**
 
 The potential fields are calculated based on the transform of the integral
@@ -95,8 +99,42 @@ Bodies: Geophysical Prospecting, 24, 633-649.
 import numpy as np
 import transform
 from ..constants import G, SI2EOTVOS, CM, T2NT, SI2MGAL
+# For testing only:
+import matplotlib.pyplot as plt
 
-def gravity_potential(xp, yp, zp, prisms, dens=None):
+def itxfm(dx,dy,a):
+    """
+    Calculates the inverse transform of the modelled data
+
+    .. note:: The coordinate system of the input parameters is to be
+        x -> North, y-> East, and z -> Down.
+
+    Computes the ifft of the modelled data.  Note that because this is a one-
+    way transform, the data need to be normalised by (1/dx * 1/dy).  The
+    result needs to be multiplied by 2pi.
+
+    Parameters:
+
+    * dx, dy : float
+        Scalars describing the discretization in the spatial domain
+    * a : Complex 2D array
+        The complex array holding the modelled data in the F.D.
+
+    Returns:
+
+    * b : 2D array
+        Real-valued spatial domain data
+
+    """
+
+    b = (2*np.pi)*_unfold(np.real(np.fft.ifft2(_fold(a)*(1/dx)*(1/dy))))
+
+    return b
+
+
+
+
+def gravity_potential(xp, yp, zp, sh, prisms, dens=None):
     """
     Calculates the gravitational potential in the Fourier Domain.
 
@@ -112,6 +150,8 @@ def gravity_potential(xp, yp, zp, prisms, dens=None):
 
     * xp, yp, zp : arrays
         Arrays with the x, y, and z coordinates of the computation points.
+    * sh : tuple = (nx,ny)
+        The shape of the grid
     * prisms : list of :class:`~fatiando.mesher.Prism`
         The density model used to calculate the gravitational effect.
         Prisms must have the property ``'density'``. Prisms that don't have
@@ -124,17 +164,15 @@ def gravity_potential(xp, yp, zp, prisms, dens=None):
 
     Returns:
 
-    * res : array
+    * res_space : array
         The field calculated on xp, yp, zp in the space domain
     * wx : 2D array of wavenumbers in the x direction
     * wy : 2D array of wavenumbers in the y direction
     * resf : 2D comple array of Fourier Domain expression of potential
 
     """
-    if xp.shape != yp.shape or xp.shape != zp.shape:
-        raise ValueError("Input arrays xp, yp, and zp must have same length.")
-    size = len(xp)
-    res = np.zeros(size, dtype=np.float)
+
+    res_fourier = np.zeros(sh, dtype=np.complex)
     for prism in prisms:
         if prism is None or ('density' not in prism.props and dens is None):
             continue
@@ -145,11 +183,73 @@ def gravity_potential(xp, yp, zp, prisms, dens=None):
         x1, x2 = prism.x1, prism.x2
         y1, y2 = prism.y1, prism.y2
         z1, z2 = prism.z1, prism.z2
+        t2,kx,ky,X,Y = general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2)
+        res_fourier += t2
+
+    res_fourier *= (G * density)
+
+    # For testing only
+    plt.figure()
+    plt.pcolormesh(ky,kx,np.log10(np.abs(res_fourier)))
+    plt.colorbar()
+    plt.show()
+
+    return res_fourier,kx,ky,X,Y
+
+def gz(xp, yp, zp, sh, prisms, dens=None):
+    """
+    Calculates the vertical gravity field in the Fourier Domain.
+
+    .. note:: The coordinate system of the input parameters is to be
+        x -> North, y -> East and z -> **DOWN**.
+
+    .. note:: All input values in **SI** units. Outputs are SI and mGal.
+
+    Computes the vertical component of the gravity field due to a right
+    rectangular 3D prism in the Fourier Domain.
+
+    Parameters:
+
+    * xp, yp, zp : arrays
+        Arrays with the x, y, and z coordinates of the computation points.
+    * sh : tuple = (nx,ny)
+        The shape of the grid
+    * prisms : list of :class:`~fatiando.mesher.Prism`
+        The density model used to calculate the gravitational effect.
+        Prisms must have the property ``'density'``. Prisms that don't have
+        this property will be ignored in the computations. Elements of *prisms*
+        that are None will also be ignored. *prisms* can also be a
+        :class:`~fatiando.mesher.PrismMesh`.
+    * dens : float or None
+        If not None, will use this value instead of the ``'density'`` property
+        of the prisms. Use this, e.g., for sensitivity matrix building.
+
+    Returns:
+
+    * res_space : array
+        The field calculated on xp, yp, zp in the space domain
+    * wx : 2D array of wavenumbers in the x direction
+    * wy : 2D array of wavenumbers in the y direction
+    * resf : 2D comple array of Fourier Domain expression of potential
+
+    """
+
+    res_fourier,kx,ky,X,Y = gravity_potential(xp,yp,zp,sh,prisms, dens=None)
+
+    kr = np.sqrt(np.square(kx)+np.square(ky))
+    kr[(len(res_fourier[:,0])/2)-1,(len(res_fourier[0,:])/2)-1] = 1                
+    res_fourier *= kr
+
+    # For testing only
+    #plt.figure()
+    #plt.pcolormesh(ky,kx,np.log10(np.abs(res_fourier)))
+    #plt.colorbar()
+    #plt.show()
+
+    return res_fourier,kx,ky,X,Y
 
 
-    return 42
-
-def general_potential(xp,yp,zp,x1,x2,y1,y2,z1,z2):
+def general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2):
     """
     Calculates the generalised potential in the fourier domain
 
@@ -166,18 +266,177 @@ def general_potential(xp,yp,zp,x1,x2,y1,y2,z1,z2):
 
     * x1,x2,y1,y2,z1,z2 : floats
         Floats with the edge coordinates of the prism to compute
-    * xp,yp,zp : arrays
+    * xp,yp,zp : 1D arrays
         Arrays with the x, y, and z coordinates of the computation points
+    * sh : tuple = (nx,ny)
+        Shape of the grid
 
     Returns:
 
-    * res_space : array
-        Resulting array of potentials in the space domain
-    * res_fourier : complex array
+    * pot : 2D complex array
         Resulting array of potentials in the Fourier domain
+    * kx,ky : 2D array
+        Wavenumber vectors
+    * X, Y : 2D array
+        Meshgrid of spatial domain coordinates
 
     """
 
+    # Compute dx,dy
+    # compute kx, ky, dxo, dyo
+    # compute omegax and omegay
+    # compute omegax,omegay meshgrids
+    kx, ky, padz, padx, pady, X, Y = _prep_transform(xp,yp,zp,sh)
 
-    return 42
+    # compute radial wavenumber
+    kr = np.sqrt(np.square(kx)+np.square(ky))
 
+    ## compute forward model in FD
+    a = .5 * (x2 - x1)      # 1/2 prism width
+    b = .5 * (y2 - y1)
+    x0 = x1 + a         # Center of prism horizontally
+    y0 = y1 + b
+    h = zp[0]
+    pv = (2.*a) * (2.*b) * (z2 - z1)
+    pot = 4 * a * b * np.sinc(a * kx / np.pi) * np.sinc(b * ky / np.pi) * (
+            (np.exp(-(z1 - h) * kr) - np.exp(-(z2 - h) * kr)) / 
+            np.square(kr)) * (np.exp(-1 * 1j * kx * x0) * 
+            np.exp(-1 * 1j * ky * y0))
+
+    # correct for zero wavenumber. scale by volume
+    pot[(len(pot[:,0])/2)-1,(len(pot[0,:])/2)-1] = pv
+
+    return pot,kx,ky,X,Y
+
+def _prep_transform(xp,yp,zp,s):
+    """
+    Prepare arrays for computing values in the Fourier Domain.
+
+    Parameters:
+
+    * xp, yp, zp : 1D arrays
+        Coordinates of data observation points
+    * s : tuple = (nx,ny)
+        Shape of the grid
+
+    Returns:
+
+    * kx, ky : 2D array
+        Meshgrid of wavenumbers
+    * padz : 2D array
+        Padded elevation grid (which should be planar!)
+    * padx,pady : scalars
+        Number of padding cells on either side
+    * X,Y : 2D arrays
+        Meshgrid of spatial coordinates
+
+    """
+
+    _validate_arrays(xp,yp,zp,s)
+    # The next four lines are how it should be done, but I'm having trouble
+    # with the wavenumbers returned by _fftfreqs
+    #padz, padx, pady = transform._pad_data(zp,s)
+    #kx, ky = transform._fftfreqs(xp,yp,s,padz.shape)
+
+    # _fftfreqs returns a negative nyquist for some reason. Flip
+    # to positive. Since everything should be padded to a power of 2, can
+    # find nyquist by just dividing by 2 (if odd number, should be floor)
+    #kx[(kx.shape[0]/2)-1,:] = -1*kx[(kx.shape[0]/2)-1,:]
+    #ky[:,(ky.shape[1]/2)-1] = -1*ky[:,(ky.shape[1]/2)-1]
+
+    x = xp.reshape(s)[:,0]
+    y = yp.reshape(s)[0,:]
+    dx = x[1]-x[0]
+    dy = y[1]-y[0]
+    [Y,X] = np.meshgrid(y,x)
+    kxo = s[0]/2
+    kyo = s[1]/2
+    dxo = (2*np.pi)/(dx*s[0])
+    dyo = (2*np.pi)/(dy*s[1])
+    kxs = np.zeros(s[0])
+    kys = np.zeros(s[1])
+    for ii in range(-kxo+1,kxo+1):
+        kxs[(ii-1)+kxo] = ii * dxo
+    for ii in range(-kyo+1,kyo+1):
+        kys[(ii-1)+kyo] = ii * dyo
+    [ky,kx] = np.meshgrid(kys,kxs)
+    padz = zp.reshape(s)
+    padx = 0
+    pady = 0
+
+    #for testing only
+    #plt.figure()
+    #plt.pcolormesh(ky,kx,kx)
+    #plt.colorbar()
+    #plt.show()
+
+    return kx,ky,padz,padx,pady,X,Y
+
+def _validate_arrays(xp,yp,zp,s):
+    """
+    Verifies that the arrays and shape all match. Throws ValueError if not.
+
+    Parameters:
+
+    *xp,yp,zp : 1D arrays
+        Arrays of coordinates
+    *s : tuple = (nx,ny)
+        Shape of the grid
+
+    Returns:
+
+    * none
+
+    """
+
+    if xp.shape != yp.shape or xp.shape != zp.shape:
+        raise ValueError("Input arrays xp, yp, and zp must have same length.")
+    sz = len(xp)
+
+    # Check to make sure dimensions are correct
+    if sz != s[0]*s[1]:
+        raise ValueError("Input arrays and shape do not match.")
+
+    # Check to make sure zp is planar
+    if (np.sum(zp-zp[0])) != 0.:
+        raise ValueError("Observation surface must be planar for Fourier ops.")
+
+    return 0
+
+def _fold(ain):
+
+    nd = ain.ndim
+    idx = []
+    for ii in range(0,nd):
+        nx = ain.shape[ii]
+        kx = int(np.floor(nx/2))
+        if kx > 1:
+            idx.append(np.concatenate((np.arange(kx-1,nx,step=1),
+                np.arange(0,kx-1,step=1)),axis=1))
+        else:
+            idx.append(1)
+    if nd == 1:
+        b = ain[idx[0]]
+    elif nd == 2:
+        c=ain[:,idx[1]]
+        b = c[idx[0],:]
+    return b
+
+def _unfold(ain):
+    
+    nd = ain.ndim
+    idx = []
+    for ii in range(0,nd):
+        nx = ain.shape[ii]
+        kx = int(np.floor(nx/2))
+        if kx > 1:
+            idx.append(np.concatenate((np.arange(kx+1,nx,step=1),
+                np.arange(0,kx+1,step=1)),axis=1))
+        else:
+            idx.append(1)
+    if nd == 1:
+        b = ain[idx[0]]
+    elif nd == 2:
+        c = ain[:,idx[1]]
+        b = c[idx[0],:]
+    return b
