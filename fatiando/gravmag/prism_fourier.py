@@ -102,7 +102,7 @@ from ..constants import G, SI2EOTVOS, CM, T2NT, SI2MGAL
 # For testing only:
 import matplotlib.pyplot as plt
 
-def itxfm(dx,dy,a):
+def itxfm(dx,dy,a,padx=0,pady=0):
     """
     Calculates the inverse transform of the modelled data
 
@@ -126,75 +126,17 @@ def itxfm(dx,dy,a):
         Real-valued spatial domain data
 
     """
+    #b = (2*np.pi)*_unfold(np.real(np.fft.ifft2(_fold(a)*(1/dx)*(1/dy))))
+    #nx = len(b[:,0])-padx*2
+    #ny = len(b[0,:])-pady*2
+    #c = b[padx:padx+nx,pady:pady+ny]
+    #c = (2*np.pi)*np.fft.fftshift(np.real(np.fft.ifft2(
+    #    np.fft.fftshift(a)*(1/(dx*dy)))))
+    c = (2.*np.pi)*np.fft.fftshift(np.real(np.fft.ifft2(
+        np.fft.ifftshift((a)*(1./(dx*dy))))))
 
-    b = (2*np.pi)*_unfold(np.real(np.fft.ifft2(_fold(a)*(1/dx)*(1/dy))))
+    return np.ravel(c)
 
-    return b
-
-
-
-
-def gravity_potential(xp, yp, zp, sh, prisms, dens=None):
-    """
-    Calculates the gravitational potential in the Fourier Domain.
-
-    .. note:: The coordinate system of the input parameters is to be
-        x -> North, y -> East and z -> **DOWN**.
-
-    .. note:: All input and output values in **SI** units(!)!
-
-    Computes the gravitational potential of a right rectangular 3D prism
-    in the Fourier Domain.
-
-    Parameters:
-
-    * xp, yp, zp : arrays
-        Arrays with the x, y, and z coordinates of the computation points.
-    * sh : tuple = (nx,ny)
-        The shape of the grid
-    * prisms : list of :class:`~fatiando.mesher.Prism`
-        The density model used to calculate the gravitational effect.
-        Prisms must have the property ``'density'``. Prisms that don't have
-        this property will be ignored in the computations. Elements of *prisms*
-        that are None will also be ignored. *prisms* can also be a
-        :class:`~fatiando.mesher.PrismMesh`.
-    * dens : float or None
-        If not None, will use this value instead of the ``'density'`` property
-        of the prisms. Use this, e.g., for sensitivity matrix building.
-
-    Returns:
-
-    * res_space : array
-        The field calculated on xp, yp, zp in the space domain
-    * wx : 2D array of wavenumbers in the x direction
-    * wy : 2D array of wavenumbers in the y direction
-    * resf : 2D comple array of Fourier Domain expression of potential
-
-    """
-
-    res_fourier = np.zeros(sh, dtype=np.complex)
-    for prism in prisms:
-        if prism is None or ('density' not in prism.props and dens is None):
-            continue
-        if dens is None:
-            density = prism.props['density']
-        else:
-            density=dens
-        x1, x2 = prism.x1, prism.x2
-        y1, y2 = prism.y1, prism.y2
-        z1, z2 = prism.z1, prism.z2
-        t2,kx,ky,X,Y = general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2)
-        res_fourier += t2
-
-    res_fourier *= (G * density)
-
-    # For testing only
-    plt.figure()
-    plt.pcolormesh(ky,kx,np.log10(np.abs(res_fourier)))
-    plt.colorbar()
-    plt.show()
-
-    return res_fourier,kx,ky,X,Y
 
 def gz(xp, yp, zp, sh, prisms, dens=None):
     """
@@ -226,18 +168,26 @@ def gz(xp, yp, zp, sh, prisms, dens=None):
 
     Returns:
 
-    * res_space : array
-        The field calculated on xp, yp, zp in the space domain
-    * wx : 2D array of wavenumbers in the x direction
-    * wy : 2D array of wavenumbers in the y direction
-    * resf : 2D comple array of Fourier Domain expression of potential
+    * res_fourier : array
+        The field calculated on xp, yp, zp in the Fourier domain
+    * kx,ky : 2D array
+        2D array of wavenumbers
+    * X,Y : 2D array
+        2D array of spatial coordinates
+    * padx, pady : Scalar
+        Scalars containing any padding cells added in the x and y direction
 
     """
 
-    res_fourier,kx,ky,X,Y = gravity_potential(xp,yp,zp,sh,prisms, dens=None)
+    res_fourier,kx,ky,X,Y,padx,pady = gravity_potential(xp,yp,zp,sh,
+        prisms, dens=None)
 
-    kr = np.sqrt(np.square(kx)+np.square(ky))
-    kr[(len(res_fourier[:,0])/2)-1,(len(res_fourier[0,:])/2)-1] = 1                
+    kr = np.sqrt(np.square(kx)+np.square(ky)) * SI2MGAL
+    #for ii in range(0,len(kr[:,0])):
+    #    for jj in range(0,len(kr[0,:])):
+    #        if kr[ii,jj] == 0:
+    #            kr[ii,jj] = SI2MGAL
+    kr[(len(res_fourier[:,0])/2),(len(res_fourier[0,:])/2)] = SI2MGAL              
     res_fourier *= kr
 
     # For testing only
@@ -246,11 +196,88 @@ def gz(xp, yp, zp, sh, prisms, dens=None):
     #plt.colorbar()
     #plt.show()
 
-    return res_fourier,kx,ky,X,Y
+    return res_fourier,kx,ky,X,Y,padx,pady
+
+
+def gravity_potential(xp, yp, zp, sh, prisms, dens=None):
+    """
+    Calculates the gravitational potential in the Fourier Domain.
+
+    .. note:: The coordinate system of the input parameters is to be
+        x -> North, y -> East and z -> **DOWN**.
+
+    .. note:: All input and output values in **SI** units(!)!
+
+    Computes the gravitational potential of a right rectangular 3D prism
+    in the Fourier Domain.
+
+    Gravity potential splits a mesh into multiple prisms if necessary and
+    sums the result.
+
+    Parameters:
+
+    * xp, yp, zp : arrays
+        Arrays with the x, y, and z coordinates of the computation points.
+    * sh : tuple = (nx,ny)
+        The shape of the grid
+    * prisms : list of :class:`~fatiando.mesher.Prism`
+        The density model used to calculate the gravitational effect.
+        Prisms must have the property ``'density'``. Prisms that don't have
+        this property will be ignored in the computations. Elements of *prisms*
+        that are None will also be ignored. *prisms* can also be a
+        :class:`~fatiando.mesher.PrismMesh`.
+    * dens : float or None
+        If not None, will use this value instead of the ``'density'`` property
+        of the prisms. Use this, e.g., for sensitivity matrix building.
+
+    Returns:
+
+    * res_space : array
+        The field calculated on xp, yp, zp in the space domain
+    * wx : 2D array of wavenumbers in the x direction
+    * wy : 2D array of wavenumbers in the y direction
+    * resf : 2D comple array of Fourier Domain expression of potential
+
+    """
+
+    for prism in prisms:
+        if prism is None or ('density' not in prism.props and dens is None):
+            continue
+        if dens is None:
+            density = prism.props['density']
+        else:
+            density=dens
+        x1, x2 = prism.x1, prism.x2
+        y1, y2 = prism.y1, prism.y2
+        z1, z2 = prism.z1, prism.z2
+        t2,kx,ky,X,Y,padx,pady = general_potential(xp,yp,zp,sh,x1,x2,
+            y1,y2,z1,z2)
+        try:
+            res_fourier += (t2 * density * G)
+        except UnboundLocalError:
+            res_fourier = np.zeros((sh[0]+padx,sh[1]+pady), dtype=np.complex)
+            res_fourier += (t2 * density * G)
+        
+        print prism
+
+    # For testing only
+    #R = np.log10(np.abs(res_fourier))
+    #theta = np.angle(res_fourier)
+    #plt.figure()
+    #plt.subplot(1,2,1)
+    #plt.pcolormesh(ky,kx,R)
+    #plt.colorbar()
+    #plt.subplot(1,2,2)
+    #plt.pcolormesh(ky,kx,theta)
+    #plt.colorbar()
+    #plt.show()
+
+    return res_fourier,kx,ky,X,Y,padx,pady
+
 
 
 def general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2):
-    """
+    r"""
     Calculates the generalised potential in the fourier domain
 
     .. note:: The coordinate system of the input parameters is to be
@@ -298,15 +325,22 @@ def general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2):
     y0 = y1 + b
     h = zp[0]
     pv = (2.*a) * (2.*b) * (z2 - z1)
-    pot = 4 * a * b * np.sinc(a * kx / np.pi) * np.sinc(b * ky / np.pi) * (
+    # The division gives a RuntimeWarning because of the zero wavenumber.
+    # Suppress the warning.
+    with np.errstate(divide='ignore', invalid='ignore'):
+        pot = 4 * a * b * np.sinc(a * kx / np.pi) * np.sinc(b * ky / np.pi) * (
             (np.exp(-(z1 - h) * kr) - np.exp(-(z2 - h) * kr)) / 
             np.square(kr)) * (np.exp(-1 * 1j * kx * x0) * 
             np.exp(-1 * 1j * ky * y0))
 
     # correct for zero wavenumber. scale by volume
-    pot[(len(pot[:,0])/2)-1,(len(pot[0,:])/2)-1] = pv
+    for ii in range(0,len(kr[:,0])):
+        for jj in range(0,len(kr[0,:])):
+            if kr[ii,jj] == 0:
+                pot[ii,jj] = pv
+    #pot[(len(pot[:,0])/2),(len(pot[0,:])/2)] = pv
 
-    return pot,kx,ky,X,Y
+    return pot,kx,ky,X,Y,padx,pady
 
 def _prep_transform(xp,yp,zp,s):
     """
@@ -336,19 +370,26 @@ def _prep_transform(xp,yp,zp,s):
     # The next four lines are how it should be done, but I'm having trouble
     # with the wavenumbers returned by _fftfreqs
     #padz, padx, pady = transform._pad_data(zp,s)
-    #kx, ky = transform._fftfreqs(xp,yp,s,padz.shape)
+    padz = zp.reshape(s)
+    #ky, kx = transform._fftfreqs(xp,yp,s,padz.shape)
 
-    # _fftfreqs returns a negative nyquist for some reason. Flip
-    # to positive. Since everything should be padded to a power of 2, can
-    # find nyquist by just dividing by 2 (if odd number, should be floor)
-    #kx[(kx.shape[0]/2)-1,:] = -1*kx[(kx.shape[0]/2)-1,:]
-    #ky[:,(ky.shape[1]/2)-1] = -1*ky[:,(ky.shape[1]/2)-1]
+
+    # Note: fftfreqs returns a negative nyquist for some reason
 
     x = xp.reshape(s)[:,0]
     y = yp.reshape(s)[0,:]
     dx = x[1]-x[0]
     dy = y[1]-y[0]
     [Y,X] = np.meshgrid(y,x)
+    # fftshift puts the 0 wavenumber in the middle
+    fx = np.fft.fftshift(2*np.pi*np.fft.fftfreq(s[0],dx))
+    fy = np.fft.fftshift(2*np.pi*np.fft.fftfreq(s[1],dy))
+    fx *= -1
+    fy *= -1
+    [ky,kx] = np.meshgrid(fy,fx)
+
+
+    """
     kxo = s[0]/2
     kyo = s[1]/2
     dxo = (2*np.pi)/(dx*s[0])
@@ -361,12 +402,17 @@ def _prep_transform(xp,yp,zp,s):
         kys[(ii-1)+kyo] = ii * dyo
     [ky,kx] = np.meshgrid(kys,kxs)
     padz = zp.reshape(s)
+    """
     padx = 0
     pady = 0
 
     #for testing only
     #plt.figure()
-    #plt.pcolormesh(ky,kx,kx)
+    #plt.subplot(1,2,1)
+    #plt.pcolormesh(ky,(kx),(kx))
+    #plt.colorbar()
+    #plt.subplot(1,2,2)
+    #plt.pcolormesh(ky,kx,ky)
     #plt.colorbar()
     #plt.show()
 
