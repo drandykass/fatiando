@@ -126,14 +126,12 @@ def itxfm(dx,dy,a,padx=0,pady=0):
         Real-valued spatial domain data
 
     """
-    #b = (2*np.pi)*_unfold(np.real(np.fft.ifft2(_fold(a)*(1/dx)*(1/dy))))
-    #nx = len(b[:,0])-padx*2
-    #ny = len(b[0,:])-pady*2
-    #c = b[padx:padx+nx,pady:pady+ny]
-    #c = (2*np.pi)*np.fft.fftshift(np.real(np.fft.ifft2(
-    #    np.fft.fftshift(a)*(1/(dx*dy)))))
     c = (2.*np.pi)*np.fft.fftshift(np.real(np.fft.ifft2(
         np.fft.ifftshift((a)*(1./(dx*dy))))))
+    #Testing only!
+    #b = np.roll(c,-1,axis=0)
+    #a = np.roll(b,-1,axis=1)
+
 
     return np.ravel(c)
 
@@ -328,10 +326,14 @@ def general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2):
     # The division gives a RuntimeWarning because of the zero wavenumber.
     # Suppress the warning.
     with np.errstate(divide='ignore', invalid='ignore'):
+        #pot = 4 * a * b * np.sinc(a * kx / np.pi) * np.sinc(b * ky / np.pi) * (
+        #    (np.exp(-(z1 - h) * kr) - np.exp(-(z2 - h) * kr)) / 
+        #    np.square(kr)) * (np.exp(-1 * 1j * kx * x0) * 
+        #    np.exp(-1 * 1j * ky * y0))
         pot = 4 * a * b * np.sinc(a * kx / np.pi) * np.sinc(b * ky / np.pi) * (
             (np.exp(-(z1 - h) * kr) - np.exp(-(z2 - h) * kr)) / 
-            np.square(kr)) * (np.exp(-1 * 1j * kx * x0) * 
-            np.exp(-1 * 1j * ky * y0))
+            np.square(kr)) * (np.exp(-1j * kx * x0) * 
+            np.exp(-1j * ky * y0))
 
     # correct for zero wavenumber. scale by volume
     for ii in range(0,len(kr[:,0])):
@@ -382,10 +384,12 @@ def _prep_transform(xp,yp,zp,s):
     dy = y[1]-y[0]
     [Y,X] = np.meshgrid(y,x)
     # fftshift puts the 0 wavenumber in the middle
+    #fx = np.fft.fftshift(2*np.pi*np.fft.fftfreq(s[0],dx)[::-1])
+    #fy = np.fft.fftshift(2*np.pi*np.fft.fftfreq(s[1],dy)[::-1])
     fx = np.fft.fftshift(2*np.pi*np.fft.fftfreq(s[0],dx))
     fy = np.fft.fftshift(2*np.pi*np.fft.fftfreq(s[1],dy))
-    fx *= -1
-    fy *= -1
+    #fx *= -1
+    #fy *= -1
     [ky,kx] = np.meshgrid(fy,fx)
 
 
