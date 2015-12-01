@@ -451,7 +451,8 @@ def pad_array(xy, a, np=None, padtype='OddReflectionTaper'):
 
     The function takes an array of arbitrary dimension and pads it either to 
     the dimensions given by the tuple np, or to the next power of 2 if np is
-    not given.  New coordinate vectors are computed for each dimension.
+    not given.  New coordinate vectors are computed for each dimension, if
+    provided.
 
     .. note:: Requires gridded data.
 
@@ -464,34 +465,37 @@ def pad_array(xy, a, np=None, padtype='OddReflectionTaper'):
         dimension.  This is effectively a concatinated xp,yp, etc...
     * a : numpy array
         numpy array (N-D) to be padded
-    # np : optional tuple
+    * np : optional tuple
         Optional tuple containing the total number of desired elements in each
         dimension
-    # padtype : optional string
+    * padtype : optional string
         String describing what to pad the new values with. Options:
         [ OddReflectionTaper | OddReflection | Reflection | value | LinTaper
         | edge | mean ]
             OddReflectionTaper - Generates odd reflection then tapers to the 
-                mean using a cosine function
+            mean using a cosine function
+
             OddReflection - Pads with the odd reflection, with no taper
+
             Reflection - Pads with simple reflection
+
             LinTaper - Linearly tapers to the mean
+
             value - numeric value
+
             edge - uses the edge value as a constant pad
+
             mean - uses the mean of the vector along each axis
 
     Returns:
 
-    * xyp : list
-        List of coordinate arrays containing the extrapolated coordinate values
     * ap : numpy array
         Padded array. The array core is a deep copy of the original array
-    * p : tuple
-        Tuple of scalars containing the number of elements padded onto each
-        dimension. Note that this is the TOTAL number of elements.  Thus there
-        would be (for example) 
-        ``ceil(p[0]/2)`` elements on the 'left' of the array and
-        ``floor(p[0]/2)`` elements on the right
+    * cp : list
+        List of coordinate arrays containing the extrapolated coordinate values
+    * nps : list
+        List of tuples containing the number of elements padded onto each 
+        dimension.
 
     """
 
@@ -557,7 +561,47 @@ def pad_array(xy, a, np=None, padtype='OddReflectionTaper'):
         ap += m
     cp = _padcoords(xy,a.shape,nps)
 
-    return ap,cp
+    return ap,cp,nps
+
+def unpad_array(a,nps,cp=None):
+    '''
+    Unpads an array using the outputs from pad_array.
+
+    This function takes a padded array and (optionally) vectors of coordinates
+    and removes the padding from both.  Effectively, this is a complement to 
+    gridder.cut for when you already know the number of elements to remove.
+
+    .. note: Unlike pad_array, this returns a slice of the input array.
+    Therefore, any changes to the padded array will be reflected in the 
+    unpadded array.
+
+    Parameters:
+
+    * a : N-D array
+        Array to be un-padded.  Can be of arbitrary dimension.
+    * nps : list
+        List of tuples giving the min and max indices for the cutoff
+        Identical to nps returned by pad_array
+    * cp : N-D array (optional)
+        Array with dimension [m x n] where m is the number of observation 
+        points in the padded array and n is the dimension. Contains coordinate
+        values.  Identical to cp returned by pad_array.
+
+    Returns:
+
+    * b : N-D array
+        Array of same dimension as a, with padding removed
+    * xy : N-D array
+        Array of coordinates of same dimension as cp with padding removed
+
+    '''
+
+    # xkcd.com/1597
+
+
+
+
+    return 42
 
 def _padcoords(xy,s,nps):
     # Define vector for coordinates for each dimension
@@ -575,6 +619,8 @@ def _padcoords(xy,s,nps):
     return coordspad
 
 def _padcvec(x,n,dx):
+    # Used by _padcoords to pad an individual vector based on the number
+    # of points on either side and the point spacing
     xp = numpy.zeros(len(x) + n[0] + n[1])
     xp[n[0]:n[0]+len(x)] = x[:]
     for ii,jj in enumerate(numpy.arange(n[0])[::-1]):
@@ -584,24 +630,28 @@ def _padcvec(x,n,dx):
     return xp
 
             
-
 def _costaper(a,lp,rp):
+    # This takes an array and applies a cosine taper to each end.
     # The array has already been deep copied above.  This is by reference only.
     a[0:lp] = a[0:lp] * _calccostaper(lp)[::-1]
     a[-rp:] = a[-rp:] * _calccostaper(rp)
     return a
 
 def _calccostaper(ntp):
+    # Used by _costaper to compute a cosine taper from 1 to zero over
+    # ntp points
     tp = numpy.zeros(ntp)
     for ii in range(1,ntp+1):
         tp[ii-1] = (1.0+numpy.cos((ii*numpy.pi)/float(ntp))/2.)-0.5
     return tp
 
 def _nextpow2(ii):
+    # Computes the next power of two
     buf = numpy.ceil(numpy.log(ii)/numpy.log(2))
     return int(2**buf)
 
 def _is_number(s):
+    # Returns true if s can be cast as a float, false otherwise
     try:
         float(s)
         return True
