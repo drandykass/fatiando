@@ -522,7 +522,6 @@ def pad_array(xy, a, np=None, padtype='OddReflectionTaper'):
     # Compute numbers to pad on the left and right side of the array along
     # each dimension
     nps = []
-    print npt
     for ii in range(0,nd):
         nps.append((int(numpy.ceil((npt[ii]-a.shape[ii])/2.)),
             int(numpy.floor((npt[ii]-a.shape[ii])/2.))))
@@ -598,10 +597,16 @@ def unpad_array(a,nps,cp=None):
 
     # xkcd.com/1597
 
+    # Remove padding from the n-d array
+    o = []
+    for ii in numpy.arange(a.ndim):
+        o.append(slice(nps[ii][0],a.shape[ii]-nps[ii][1]))
+    b = a[o]
+    print b.shape
+    
+    # Remove padding from coordinate vectors, if given
 
-
-
-    return 42
+    return b
 
 def _padcoords(xy,s,nps):
     # Define vector for coordinates for each dimension
@@ -629,6 +634,11 @@ def _padcvec(x,n,dx):
         xp[jj] = x[-1] + (dx * (ii + 1))
     return xp
 
+def _unpadcvec(x,n):
+    # Takes a vector, x, and a tuple, n, and removes n[0] elements from the 
+    # left and n[1] to the right
+    
+    return x[n[0]:len(x)-n[1]]
             
 def _costaper(a,lp,rp):
     # This takes an array and applies a cosine taper to each end.
