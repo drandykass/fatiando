@@ -85,7 +85,7 @@ def load_surfer(fname, fmt='ascii'):
             # Read the number of columns (ny) and rows (nx)
             ny, nx = [int(s) for s in ftext.readline().split()]
             shape = (nx, ny)
-            # Read the min/max value of columns/longitue (y direction)
+            # Read the min/max value of columns/longitude (y direction)
             ymin, ymax = [float(s) for s in ftext.readline().split()]
             # Read the min/max value of rows/latitude (x direction)
             xmin, xmax = [float(s) for s in ftext.readline().split()]
@@ -470,16 +470,17 @@ def pad_array(a, xy=None, npd=None, padtype='OddReflectionTaper'):
 
     Parameters:
 
-    * xy : N-D array (optional)
-        [MxN] array where M is the number of observation points and N is the 
-        dimension.  This is effectively a concatinated xp,yp, etc...
     * a : numpy array
         numpy array (N-D) to be padded
-    * npd : optional tuple
+    * xy : N-D array (optional)
+        [MxN] array where M is the number of observation points and N is the 
+        dimension.  This is effectively a concatenated xp,yp, etc...
+    * npd : tuple (optional)
         Optional tuple containing the total number of desired elements in each
         dimension
-    * padtype : optional string
+    * padtype : string (optional)
         String describing what to pad the new values with. Options:
+
         [ OddReflectionTaper | OddReflection | Reflection | value | LinTaper
         | edge | mean ]
             OddReflectionTaper - Generates odd reflection then tapers to the 
@@ -503,6 +504,7 @@ def pad_array(a, xy=None, npd=None, padtype='OddReflectionTaper'):
         Padded array. The array core is a deep copy of the original array
     * cp : list
         List of coordinate arrays containing the extrapolated coordinate values
+        Returns None if xy not provided
     * nps : list
         List of tuples containing the number of elements padded onto each 
         dimension.
