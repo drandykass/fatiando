@@ -23,31 +23,31 @@ xy[:,0] = x[:]
 xy[:,1] = y[:]
 
 # Pad with zeros
-g,xyp,nps = gridder.pad_array(xy,gz,padtype='0')
+g,xyp,nps = gridder.pad_array(gz,xy,padtype='0')
 pads.append(g.flatten())
 
 # Pad with the mean of each vector
-g,_,_ = gridder.pad_array(xy,gz,padtype='mean')
+g,_,_ = gridder.pad_array(gz,xy,padtype='mean')
 pads.append(g.flatten())
 
 # Pad with the edge of each vector
-g,_,_ = gridder.pad_array(xy,gz,padtype='edge')
+g,_,_ = gridder.pad_array(gz,xy,padtype='edge')
 pads.append(g.flatten())
 
 # Pad with a linear taper
-g,_,_ = gridder.pad_array(xy,gz,padtype='lintaper')
+g,_,_ = gridder.pad_array(gz,xy,padtype='lintaper')
 pads.append(g.flatten())
 
 # Pad with the even reflection
-g,_,_ = gridder.pad_array(xy,gz,padtype='reflection')
+g,_,_ = gridder.pad_array(gz,xy,padtype='reflection')
 pads.append(g.flatten())
 
 # Pad with the odd reflection
-g,_,_ = gridder.pad_array(xy,gz,padtype='OddReflection')
+g,_,_ = gridder.pad_array(gz,xy,padtype='OddReflection')
 pads.append(g.flatten())
 
 # Pad with the odd reflection and a cosine taper (default)
-g,_,_ = gridder.pad_array(xy,gz,padtype='OddReflectionTaper')
+g,_,_ = gridder.pad_array(gz,xy,padtype='OddReflectionTaper')
 pads.append(g.flatten())
 
 shapepad = g.shape
