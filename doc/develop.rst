@@ -166,10 +166,9 @@ unit tests and doc tests.
 
 .. note::
 
-    If you are new to automated tests, see various guides on using Nose and 
-    unittesting (Software Carpentry has unfortunately removed their lessons
-    on testing).  Here is `one example
-    <http://pythontesting.net/framework/nose/nose-introduction.html>`__.
+    If you are new to automated tests, see the Software Carpentry lessons on 
+    `Testing: Unit Testing
+    <http://software-carpentry.org/>`__.
 
 Unit tests are implemented in the ``test/test_*.py`` files of the repository.
 Doctests are part of the docstrings of functions and modules.
