@@ -24,7 +24,7 @@ private repositories.
 
     If you are new to **version control** (or don't know what that means),
     start with the `Software Carpentry lessons on version control with Git
-    <http://software-carpentry.org`__.
+    <http://software-carpentry.org/>`__.
     After you've gone through those, the
     Github `help page <https://help.github.com/>`__
     and `guides <https://guides.github.com/>`__
@@ -166,9 +166,9 @@ unit tests and doc tests.
 
 .. note::
 
-    If you are new to automated tests, see various on using Nose and 
+    If you are new to automated tests, see various guides on using Nose and 
     unittesting (Software Carpentry has unfortunately removed their lessons
-    on testing).  One example can be found at
+    on testing).  Here is `one example
     <http://pythontesting.net/framework/nose/nose-introduction.html>`__.
 
 Unit tests are implemented in the ``test/test_*.py`` files of the repository.
