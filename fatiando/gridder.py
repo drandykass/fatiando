@@ -445,12 +445,12 @@ def cut(x, y, scalars, area):
               and y[i] >= ymin and y[i] <= ymax]
     return [x[inside], y[inside], [s[inside] for s in scalars]]
 
-def pad_array(a, xy=None, np=None, padtype='OddReflectionTaper'):
+def pad_array(a, xy=None, npd=None, padtype='OddReflectionTaper'):
     """
     Return a padded array of arbitrary dimension.
 
     The function takes an array of arbitrary dimension and pads it either to 
-    the dimensions given by the tuple np, or to the next power of 2 if np is
+    the dimensions given by the tuple npd, or to the next power of 2 if npd is
     not given.  New coordinate vectors are computed for each dimension, if
     provided.
 
@@ -459,9 +459,14 @@ def pad_array(a, xy=None, np=None, padtype='OddReflectionTaper'):
     the frequency content while adding minimal sharp inflections.  The cosine
     taper is a smooth function which also adds few sharp inflection points.
 
-    .. note:: Requires gridded data.
+    .. note:: Requires gridded data of the same dimension as desired
+        (i.e. no flattened arrays; use reshape).
 
     .. note:: This function returns a deep copy of the original array.
+
+    .. warning:: This function returns the coordinate vectors as a list of 
+        arrays.  This means that even for a 1D input array, the returned 
+        vector will be in a list of one element.
 
     Parameters:
 
@@ -470,7 +475,7 @@ def pad_array(a, xy=None, np=None, padtype='OddReflectionTaper'):
         dimension.  This is effectively a concatinated xp,yp, etc...
     * a : numpy array
         numpy array (N-D) to be padded
-    * np : optional tuple
+    * npd : optional tuple
         Optional tuple containing the total number of desired elements in each
         dimension
     * padtype : optional string
@@ -516,20 +521,39 @@ def pad_array(a, xy=None, np=None, padtype='OddReflectionTaper'):
     #                            below. Add a descriptive comment.
     if padtype.lower() not in padopts and not _is_number(padtype):
         raise ValueError('gridder.pad_array: Pad Type not understood')
-    # If np is not provided, populate with next power of 2
+    # If npd is not provided, populate with next power of 2
     npt = []
     nd = a.ndim
-    if np == None:
+    if npd == None:
         for ii in range(0, nd):
             if nd == 1:
                 npt.append(_nextpow2(len(a)))
             else:
                 npt.append(_nextpow2(a.shape[ii]))
     else:
+        et = 'gridder.pad_array: pad dimensions do not match array dims'
         if nd == 1:
-            npt.append(np)
+            if _is_integer(npd):
+                npt.append(npd)
+            else:
+                if len(npd) != 1:
+                    raise ValueError(et)
+                else:
+                    npt.append(npd)
         else:
-            npt = np
+            if _is_integer(npd):
+                raise ValueError(et)
+            elif len(npd) != a.ndim:
+                raise ValueError(et)
+            else:
+                npt = npd
+        for ii in numpy.arange(len(npt)):
+            if npt[ii] <= a.shape[ii]:
+                # How are you supposed to properly assign a multi-line string?
+                et1 = 'gridder.pad_array: Desired padding is less than array '
+                et2 = 'length along dimension '+str(ii)
+                et = et1+et2
+                raise ValueError(et)
     # Compute numbers to pad on the left and right side of the array along
     # each dimension
     nps = []
@@ -579,13 +603,13 @@ def pad_array(a, xy=None, np=None, padtype='OddReflectionTaper'):
 
     return ap, cp, nps
 
-def unpad_array(a, nps, cp=None):
+def unpad_array(a, nps):
     '''
     Unpads an array using the outputs from pad_array.
 
-    This function takes a padded array and (optionally) vectors of coordinates
-    and removes the padding from both.  Effectively, this is a complement to 
-    gridder.cut for when you already know the number of elements to remove.
+    This function takes a padded array and removes the padding from both. 
+    Effectively, this is a complement to gridder.cut for when you already 
+    know the number of elements to remove.
 
     .. note: Unlike pad_array, this returns a slice of the input array.
     Therefore, any changes to the padded array will be reflected in the 
@@ -598,18 +622,11 @@ def unpad_array(a, nps, cp=None):
     * nps : list
         List of tuples giving the min and max indices for the cutoff
         Identical to nps returned by pad_array
-    * cp : N-D array (optional)
-        Array with dimension [m x n] where m is the number of observation 
-        points in the padded array and n is the dimension. Contains coordinate
-        values.  Identical to cp returned by pad_array.
 
     Returns:
 
     * b : N-D array
         Array of same dimension as a, with padding removed
-    * xy : N-D array
-        Array of coordinates of same dimension as cp with padding removed
-
     '''
 
     # xkcd.com/1597
@@ -618,8 +635,6 @@ def unpad_array(a, nps, cp=None):
     for ii in numpy.arange(a.ndim):
         o.append(slice(nps[ii][0],a.shape[ii] - nps[ii][1]))
     b = a[o]
-    print b.shape
-    # \todo Remove padding from coordinate vectors, if given
 
     return b
 
@@ -629,7 +644,7 @@ def _padcoords(xy, s, nps):
     d = []
     coordspad = []
     for ii in numpy.arange(len(s)):
-        if len(s) < 1:
+        if len(s) <= 1:
             coords.append(xy)
         else:
             coords.append(xy[:,ii].reshape(s).transpose().take(0,axis=ii))
@@ -680,6 +695,14 @@ def _is_number(s):
         float(s)
         return True
     except ValueError:
+        return False
+
+def _is_integer(s):
+    # Returns true if s is an integer. Used for testing int/array
+    try:
+        int(s)
+        return True
+    except TypeError:
         return False
 
 
