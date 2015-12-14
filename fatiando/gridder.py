@@ -565,13 +565,13 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
     if _is_number(padtype):
         # Pad with value
         ap = numpy.pad(a, nps, mode='constant',
-                       constant_values=float(padtype))
+                       constant_values=(float(padtype),float(padtype)))
     elif padtype.lower() == 'mean':
         # Pad with the mean
         ap = numpy.pad(a, nps, mode='mean')
     elif padtype.lower() == 'lintaper':
         # Linearly taper to the mean
-        ap = numpy.pad(a, nps, mode='linear_ramp', end_values=m)
+        ap = numpy.pad(a, nps, mode='linear_ramp', end_values=(m, m))
     elif padtype.lower() == 'edge':
         # Pad with edge values
         ap = numpy.pad(a, nps, mode='edge')
