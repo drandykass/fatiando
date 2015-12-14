@@ -477,10 +477,11 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
         Desired shape of new padded array.  If not provided, the nearest
         power of 2 will be used.
     * padtype : string (optional)
-        String describing what to pad the new values with. Options:
+        String describing with what to pad the new values. Options:
 
         [ oddreflectiontaper | oddreflection | reflection | value | lintaper
         | edge | mean ]
+
             oddreflectiontaper - Generates odd reflection then tapers to the
             mean using a cosine function (Default)
 
@@ -602,16 +603,16 @@ def unpad_array(a, nps):
     Effectively, this is a complement to gridder.cut for when you already
     know the number of elements to remove.
 
-    .. note: Unlike :func:`~fatiando.gridder.pad_array`, this returns a slice
-    of the input array.  Therefore, any changes to the padded array will be
-    reflected in the unpadded array.
+    .. note:: Unlike :func:`~fatiando.gridder.pad_array`, this returns a slice
+        of the input array.  Therefore, any changes to the padded array will be
+        reflected in the unpadded array.
 
     Parameters:
 
     * a : N-D array
         Array to be un-padded.  Can be of arbitrary dimension.
     * nps : list
-        List of tuples giving the min and max indices for the cutoff
+        List of tuples giving the min and max indices for the cutoff.
         Identical to nps returned by pad_array
 
     Returns:
