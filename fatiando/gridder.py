@@ -565,7 +565,7 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
     if _is_number(padtype):
         # Pad with value
         ap = numpy.pad(a, nps, mode='constant',
-                       constant_values=(float(padtype),float(padtype)))
+                       constant_values=(float(padtype), float(padtype)))
     elif padtype.lower() == 'mean':
         # Pad with the mean
         ap = numpy.pad(a, nps, mode='mean')
