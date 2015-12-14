@@ -20,14 +20,11 @@ However, while it is possible (and not that difficult) to
 <http://docs.python.org/3.4/howto/pyporting.html>`__,
 it does take work.
 And work takes time.
-Unfortunately, my time is quite limited at the moment and I can't work as much
-as I'd like on Fatiando.
-For the time being, I choose to spend my time improving the functionality of
-Fatiando first.
-In the future, the need to support both versions might arise and, hopefully,
-I'll have help to do that when the time comes.
 
-So, for the moment, **Fatiando is tested and works on Python 2.7**.
+For the moment, **Fatiando is tested and works on Python 2.7**.
+
+If you'd like to help us add support for Python 3, please get in touch through
+the `mailing list`_.
 
 Installing the dependencies
 ---------------------------
@@ -41,6 +38,7 @@ Fatiando requires the following packages:
 * `numba <http://numba.pydata.org/>`__
 * `PIL <http://www.pythonware.com/products/pil/>`_
 * `mayavi <http://code.enthought.com/projects/mayavi/>`_
+* `future <http://python-future.org/>`_
 * A C compiler (preferably GCC or MinGW_ on Windows)
 
 The easiest and **preferred** way to get all dependencies in the latest
@@ -53,7 +51,8 @@ the many, many, many issues of compiling under Windows.
 Once you have downloaded and installed Anaconda_,
 open a terminal (or ``cmd.exe`` on Windows) and run::
 
-    conda install numpy scipy matplotlib numba ipython basemap imaging mayavi pip
+    conda install numpy scipy matplotlib numba ipython basemap imaging mayavi pip future
+
 
 Installing Fatiando
 -------------------
@@ -74,11 +73,6 @@ version, use::
 To uninstall simply run::
 
     pip uninstall fatiando
-
-
-.. note::
-
-    The Windows installer from older versions is no longer supported.
 
 
 Installing the latest development version
