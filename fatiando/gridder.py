@@ -21,6 +21,7 @@ Create and operate on grids and profiles.
 
 * :func:`~fatiando.gridder.pad_array`
 * :func:`~fatiando.gridder.unpad_array`
+* :func:`~fatiando.gridder.padcoords`
 
 **Input/Output**
 
@@ -446,13 +447,13 @@ def cut(x, y, scalars, area):
     return [x[inside], y[inside], [s[inside] for s in scalars]]
 
 
-def pad_array(a, xy=None, npd=None, padtype='OddReflectionTaper'):
+def pad_array(a, npd=None, padtype='OddReflectionTaper'):
     """
     Return a padded array of arbitrary dimension.
 
     The function takes an array of arbitrary dimension and pads it either to
     the dimensions given by the tuple npd, or to the next power of 2 if npd is
-    not given.  
+    not given. 
 
     An odd reflection with a cosine taper is the author's preferred method of
     padding for Fourier operations.  The odd reflection optimally preserves
@@ -515,8 +516,8 @@ def pad_array(a, xy=None, npd=None, padtype='OddReflectionTaper'):
     #  [ ] padopts - Make sure to add to avoid raising a ValueError
     #  [ ] if statements below - Finally add an elif to the if statements
     #                            below. Add a descriptive comment.
-    if padtype.lower() not in padopts and not _is_number(padtype):
-        raise ValueError('Pad Type not understood')
+    if str(padtype).lower() not in padopts and not _is_number(padtype):
+        raise ValueError('Pad type not understood')
     # If npd is not provided, populate with next power of 2
     npt = []
     nd = a.ndim
@@ -589,11 +590,6 @@ def pad_array(a, xy=None, npd=None, padtype='OddReflectionTaper'):
             ap = numpy.apply_along_axis(_costaper, ii, ap, lp=nps[ii][0],
                                         rp=nps[ii][1])
         ap += m
-    #if xy is not None:
-    #    cp = _padcoords(xy, a.shape, nps)
-    #else:
-    #    # What is the preferred way to do this?
-    #    cp = None
 
     return ap, nps
 
@@ -622,9 +618,8 @@ def unpad_array(a, nps):
 
     * b : N-D array
         Array of same dimension as a, with padding removed
-    '''
 
-    # Remove padding from the n-d array
+    '''
     o = []
     for ii in range(0, a.ndim):
         o.append(slice(nps[ii][0], a.shape[ii] - nps[ii][1]))
@@ -640,7 +635,21 @@ def padcoords(xy, s, nps):
     Designed to be used in concert with :func:`~fatiando.gridder.pad_array`,
     this function takes a list of coordinate vectors and pads them using the
     same discretization.
-    
+
+    Parameters:
+
+    * xy : List
+        List of arrays of coordinates
+    * s : tuple
+        Size of original array array
+    * nps : tuple
+        Size of padded array
+
+    Returns:
+
+    * coordspad : List
+        List of padded coordinate arrays
+
     '''
     coords = []
     d = []
@@ -652,18 +661,7 @@ def padcoords(xy, s, nps):
             coords.append(xy[ii].reshape(s).transpose().take(0, axis=ii))
         d.append(coords[ii][1] - coords[ii][0])
         coordspad.append(_padcvec(coords[ii], nps[ii], d[ii]))
-    '''
-    coords = []
-    d = []
-    coordspad = []
-    for ii in range(0, len(s)):
-        if len(s) <= 1:
-            coords.append(xy)
-        else:
-            coords.append(xy[:, ii].reshape(s).transpose().take(0, axis=ii))
-        d.append(coords[ii][1] - coords[ii][0])
-        coordspad.append(_padcvec(coords[ii], nps[ii], d[ii]))
-    '''
+
     return coordspad
 
 
@@ -672,10 +670,9 @@ def _padcvec(x, n, dx):
     # of points on either side and the point spacing
     xp = numpy.zeros(len(x) + n[0] + n[1])
     xp[n[0]:n[0]+len(x)] = x[:]
-    for ii, jj in enumerate(range(0,n[0])[::-1]):
+    for ii, jj in enumerate(range(0, n[0])[::-1]):
         xp[ii] = x[0] - ((jj + 1) * dx)
     for ii, jj in enumerate(range(len(x)+n[0], len(xp))):
-    #for ii, jj in enumerate(numpy.arange(len(x)+n[0], len(xp))):
         xp[jj] = x[-1] + (dx * (ii + 1))
     return xp
 
