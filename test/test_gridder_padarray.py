@@ -24,12 +24,12 @@ def test_pad_and_unpad_equal_2d():
     # rosenbrock: (a-x)^2 + b(y-x^2)^2  a=1 b=100 usually
     X = x.reshape(s)
     Y = y.reshape(s)
-    xy = [x,y]
-    gz = scipy.optimize.rosen([Y/100000.,X/100000.])
-    pads = ['mean', 'edge', 'lintaper', 'reflection', 'oddreflection', 
+    xy = [x, y]
+    gz = scipy.optimize.rosen([Y/100000., X/100000.])
+    pads = ['mean', 'edge', 'lintaper', 'reflection', 'oddreflection',
             'oddreflectiontaper', '0']
     for p in pads:
-        gpad, nps = gridder.pad_array(gz,padtype=p)
+        gpad, nps = gridder.pad_array(gz, padtype=p)
         gunpad = gridder.unpad_array(gpad, nps)
         assert_almost(gunpad, gz)
 

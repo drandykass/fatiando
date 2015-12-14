@@ -453,7 +453,7 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
 
     The function takes an array of arbitrary dimension and pads it either to
     the dimensions given by the tuple npd, or to the next power of 2 if npd is
-    not given. 
+    not given.
 
     An odd reflection with a cosine taper is the author's preferred method of
     padding for Fourier operations.  The odd reflection optimally preserves
@@ -508,7 +508,7 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
 
     # Test to make sure padtype is valid
     padopts = ['oddreflectiontaper', 'oddreflection', 'reflection',
-                'lintaper', 'edge', 'value', 'mean']
+               'lintaper', 'edge', 'value', 'mean']
     # API Note:
     # If one wishes to add more options to the padding, use the following
     # checklist to make sure all the sections are consistent.
@@ -547,8 +547,8 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
         for ii in range(0, len(npt)):
             if npt[ii] <= a.shape[ii]:
                 raise ValueError(
-                        'Desired padding is less than array ' +
-                        'length along dimension' + str(ii) + '.')
+                    'Desired padding is less than array ' +
+                    'length along dimension' + str(ii) + '.')
     # Compute numbers to pad on the left and right side of the array along
     # each dimension
     nps = []
@@ -564,7 +564,7 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
     if _is_number(padtype):
         # Pad with value
         ap = numpy.pad(a, nps, mode='constant',
-                        constant_values=float(padtype))
+                       constant_values=float(padtype))
     elif padtype.lower() == 'mean':
         # Pad with the mean
         ap = numpy.pad(a, nps, mode='mean')
@@ -577,11 +577,11 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
     elif padtype.lower() == 'reflection':
         # Pad with even reflection
         ap = numpy.pad(a, nps, mode='reflect',
-                        reflect_type='even')
+                       reflect_type='even')
     elif padtype.lower() == 'oddreflection':
         # Pad with odd reflection
         ap = numpy.pad(a, nps, mode='reflect',
-                        reflect_type='odd')
+                       reflect_type='odd')
     elif padtype.lower() == 'oddreflectiontaper':
         # Pad with odd reflection and a cosine taper to mean
         ap = (numpy.pad(a, nps, mode='reflect',
