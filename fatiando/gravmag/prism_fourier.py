@@ -10,12 +10,12 @@ Calculate the Fourier Domain expression of the potentials of a 3D right-rectangu
 
 .. note:: Because the modelling is done is the Fourier domain, it is 
     assumed that the data observation locations are regularly gridded
-    and the number of observations in each location is a power of 2.
+    and the number of observations in each direction is a power of 2.
 
 **Background**
 
 The potential fields are calculated based on the transform of the integral
-equation solution.  This is similar, but not identical, to the derivation by
+equation solution.  This deviates from the derivation by
 Bhattacharyya and Navolio (1976).
 
 Let :math:`\tilde{\phi}(x,y,z)` be the generic Fourier domain description of 
@@ -102,7 +102,7 @@ from ..constants import G, SI2EOTVOS, CM, T2NT, SI2MGAL
 # For testing only:
 import matplotlib.pyplot as plt
 
-def itxfm(dx,dy,a,padx=0,pady=0):
+def itxfm(dx,dy,a):
     """
     Calculates the inverse transform of the modelled data
 
@@ -172,12 +172,10 @@ def gz(xp, yp, zp, sh, prisms, dens=None):
         2D array of wavenumbers
     * X,Y : 2D array
         2D array of spatial coordinates
-    * padx, pady : Scalar
-        Scalars containing any padding cells added in the x and y direction
 
     """
 
-    res_fourier,kx,ky,X,Y,padx,pady = gravity_potential(xp,yp,zp,sh,
+    res_fourier,kx,ky,X,Y = gravity_potential(xp,yp,zp,sh,
         prisms, dens=None)
 
     kr = np.sqrt(np.square(kx)+np.square(ky)) * SI2MGAL
@@ -194,7 +192,7 @@ def gz(xp, yp, zp, sh, prisms, dens=None):
     #plt.colorbar()
     #plt.show()
 
-    return res_fourier,kx,ky,X,Y,padx,pady
+    return res_fourier,kx,ky,X,Y
 
 
 def gravity_potential(xp, yp, zp, sh, prisms, dens=None):
@@ -248,15 +246,15 @@ def gravity_potential(xp, yp, zp, sh, prisms, dens=None):
         x1, x2 = prism.x1, prism.x2
         y1, y2 = prism.y1, prism.y2
         z1, z2 = prism.z1, prism.z2
-        t2,kx,ky,X,Y,padx,pady = general_potential(xp,yp,zp,sh,x1,x2,
+        t2,kx,ky,X,Y = general_potential(xp,yp,zp,sh,x1,x2,
             y1,y2,z1,z2)
         try:
             res_fourier += (t2 * density * G)
         except UnboundLocalError:
-            res_fourier = np.zeros((sh[0]+padx,sh[1]+pady), dtype=np.complex)
+            res_fourier = np.zeros((sh[0],sh[1]), dtype=np.complex)
             res_fourier += (t2 * density * G)
         
-        print prism
+        #print prism
 
     # For testing only
     #R = np.log10(np.abs(res_fourier))
@@ -270,7 +268,7 @@ def gravity_potential(xp, yp, zp, sh, prisms, dens=None):
     #plt.colorbar()
     #plt.show()
 
-    return res_fourier,kx,ky,X,Y,padx,pady
+    return res_fourier,kx,ky,X,Y
 
 
 
@@ -311,7 +309,7 @@ def general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2):
     # compute kx, ky, dxo, dyo
     # compute omegax and omegay
     # compute omegax,omegay meshgrids
-    kx, ky, padz, padx, pady, X, Y = _prep_transform(xp,yp,zp,sh)
+    kx, ky, padz, X, Y = _prep_transform(xp,yp,zp,sh)
 
     # compute radial wavenumber
     kr = np.sqrt(np.square(kx)+np.square(ky))
@@ -342,7 +340,7 @@ def general_potential(xp,yp,zp,sh,x1,x2,y1,y2,z1,z2):
                 pot[ii,jj] = pv
     #pot[(len(pot[:,0])/2),(len(pot[0,:])/2)] = pv
 
-    return pot,kx,ky,X,Y,padx,pady
+    return pot,kx,ky,X,Y
 
 def _prep_transform(xp,yp,zp,s):
     """
@@ -372,11 +370,13 @@ def _prep_transform(xp,yp,zp,s):
     # The next four lines are how it should be done, but I'm having trouble
     # with the wavenumbers returned by _fftfreqs
     #padz, padx, pady = transform._pad_data(zp,s)
-    padz = zp.reshape(s)
+    z = zp.reshape(s)
     #ky, kx = transform._fftfreqs(xp,yp,s,padz.shape)
 
 
     # Note: fftfreqs returns a negative nyquist for some reason
+    # This may be the source of the dx/2 dy/2 error
+    # However, this would imply that their transform isn't self-consistent?
 
     x = xp.reshape(s)[:,0]
     y = yp.reshape(s)[0,:]
@@ -407,8 +407,6 @@ def _prep_transform(xp,yp,zp,s):
     [ky,kx] = np.meshgrid(kys,kxs)
     padz = zp.reshape(s)
     """
-    padx = 0
-    pady = 0
 
     #for testing only
     #plt.figure()
@@ -420,7 +418,7 @@ def _prep_transform(xp,yp,zp,s):
     #plt.colorbar()
     #plt.show()
 
-    return kx,ky,padz,padx,pady,X,Y
+    return kx,ky,z,X,Y
 
 def _validate_arrays(xp,yp,zp,s):
     """
