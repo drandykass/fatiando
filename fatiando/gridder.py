@@ -514,6 +514,14 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
         >>> nps
         [(2, 1)]
 
+        >>> shape = (5, 6)
+        >>> z = numpy.ones(shape)
+        >>> zpad, nps = pad_array(z, padtype='5')
+        >>> zpad.shape
+        (8, 8)
+        >>> nps
+        [(2, 1), (1, 1)]
+
     """
 
     # Test to make sure padtype is valid
@@ -680,7 +688,6 @@ def pad_coords(xy, shape, nps):
         array([-10.,  -5.,   0.,   5.,  10.])
         >>> y.reshape(shape)[0,:]
         array([-20., -16., -12.,  -8.,  -4.,   0.])
-        # Pad the coordinate vectors
         >>> xy = [x, y]
         >>> [xp, yp] = pad_coords(xy, shape, nps)
         >>> xp
