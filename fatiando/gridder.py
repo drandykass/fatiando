@@ -21,7 +21,7 @@ Create and operate on grids and profiles.
 
 * :func:`~fatiando.gridder.pad_array`
 * :func:`~fatiando.gridder.unpad_array`
-* :func:`~fatiando.gridder.padcoords`
+* :func:`~fatiando.gridder.pad_coords`
 
 **Input/Output**
 
@@ -471,8 +471,8 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
 
     Parameters:
 
-    * a : numpy array
-        numpy array (N-D) to be padded
+    * a : array
+        Array (N-D) to be padded
     * npd : tuple (optional)
         Desired shape of new padded array.  If not provided, the nearest
         power of 2 will be used.
@@ -504,6 +504,15 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
     * nps : list
         List of tuples containing the number of elements padded onto each
         dimension.
+
+    Examples:
+
+        >>> z = numpy.array([3, 4, 4, 5, 6])
+        >>> zpad, nps = pad_array(z)
+        >>> zpad
+        array([ 4.4,  3.2,  3. ,  4. ,  4. ,  5. ,  6. ,  4.4])
+        >>> nps
+        [(2, 1)]
 
     """
 
@@ -596,7 +605,7 @@ def pad_array(a, npd=None, padtype='OddReflectionTaper'):
 
 
 def unpad_array(a, nps):
-    '''
+    """
     Unpads an array using the outputs from pad_array.
 
     This function takes a padded array and removes the padding from both.
@@ -609,7 +618,7 @@ def unpad_array(a, nps):
 
     Parameters:
 
-    * a : N-D array
+    * a : array
         Array to be un-padded.  Can be of arbitrary dimension.
     * nps : list
         List of tuples giving the min and max indices for the cutoff.
@@ -617,10 +626,20 @@ def unpad_array(a, nps):
 
     Returns:
 
-    * b : N-D array
+    * b : array
         Array of same dimension as a, with padding removed
 
-    '''
+    Examples:
+
+        >>> z = numpy.array([3, 4, 4, 5, 6])
+        >>> zpad, nps = pad_array(z)
+        >>> zpad
+        array([ 4.4,  3.2,  3. ,  4. ,  4. ,  5. ,  6. ,  4.4])
+        >>> zunpad = unpad_array(zpad, nps)
+        >>> zunpad
+        array([ 3.,  4.,  4.,  5.,  6.])
+
+    """
     o = []
     for ii in range(0, a.ndim):
         o.append(slice(nps[ii][0], a.shape[ii] - nps[ii][1]))
@@ -629,8 +648,8 @@ def unpad_array(a, nps):
     return b
 
 
-def padcoords(xy, s, nps):
-    '''
+def pad_coords(xy, shape, nps):
+    """
     Pads coordinate vectors.
 
     Designed to be used in concert with :func:`~fatiando.gridder.pad_array`,
@@ -639,27 +658,45 @@ def padcoords(xy, s, nps):
 
     Parameters:
 
-    * xy : List
+    * xy : list
         List of arrays of coordinates
-    * s : tuple
-        Size of original array array
+    * shape : tuple
+        Size of original array
     * nps : tuple
         Size of padded array
 
     Returns:
 
-    * coordspad : List
+    * coordspad : list
         List of padded coordinate arrays
 
-    '''
+    Examples:
+
+        >>> shape = (5, 6)
+        >>> x, y, z = regular((-10,10,-20,0), shape, z=-25)
+        >>> gz = numpy.zeros(shape)
+        >>> gzpad, nps = pad_array(gz)
+        >>> x.reshape(shape)[:,0]
+        array([-10.,  -5.,   0.,   5.,  10.])
+        >>> y.reshape(shape)[0,:]
+        array([-20., -16., -12.,  -8.,  -4.,   0.])
+        # Pad the coordinate vectors
+        >>> xy = [x, y]
+        >>> [xp, yp] = pad_coords(xy, shape, nps)
+        >>> xp
+        array([-20., -15., -10.,  -5.,   0.,   5.,  10.,  15.])
+        >>> yp
+        array([-24., -20., -16., -12.,  -8.,  -4.,   0.,   4.])
+
+    """
     coords = []
     d = []
     coordspad = []
-    for ii in range(0, len(s)):
-        if type(xy) is numpy.ndarray:
+    for ii in range(0, len(shape)):
+        if type(xy) is not list:
             coords.append(xy)
-        elif type(xy) is list and len(s) > 1:
-            coords.append(xy[ii].reshape(s).transpose().take(0, axis=ii))
+        elif type(xy) is list and len(shape) > 1:
+            coords.append(xy[ii].reshape(shape).transpose().take(0, axis=ii))
         d.append(coords[ii][1] - coords[ii][0])
         coordspad.append(_padcvec(coords[ii], nps[ii], d[ii]))
 

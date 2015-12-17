@@ -52,7 +52,7 @@ g, _ = gridder.pad_array(gz, padtype='OddReflectionTaper')
 pads.append(g.flatten())
 
 # Get coordinate vectors
-xyp = gridder.padcoords(xy, gz.shape, nps)
+xyp = gridder.pad_coords(xy, gz.shape, nps)
 
 shapepad = g.shape
 
