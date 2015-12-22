@@ -664,6 +664,12 @@ def pad_coords(xy, shape, nps):
     this function takes a list of coordinate vectors and pads them using the
     same discretization.
 
+    .. note:: The returned list contains n vectors, where n is the number
+        of dimensions.  Each list element is a single vector containing
+        the coordinates of the points in the respective dimension.  See the
+        example below for how to convert to flattened meshgrid-style
+        (similar to the output of :func:`fatiando.gridder.regular`) vectors.
+
     Parameters:
 
     * xy : list
@@ -680,6 +686,8 @@ def pad_coords(xy, shape, nps):
 
     Examples:
 
+    Construct padded arrays
+
         >>> shape = (5, 6)
         >>> x, y, z = regular((-10,10,-20,0), shape, z=-25)
         >>> gz = numpy.zeros(shape)
@@ -694,6 +702,18 @@ def pad_coords(xy, shape, nps):
         array([-20., -15., -10.,  -5.,   0.,   5.,  10.,  15.])
         >>> yp
         array([-24., -20., -16., -12.,  -8.,  -4.,   0.,   4.])
+
+    Convert padded arrays to the flattened meshgrid style
+
+        >>> shape = (5, 6)
+        >>> x, y, z = regular((-10,10,-20,0), shape, z=-25)
+        >>> gz = numpy.zeros(shape)
+        >>> gzpad, nps = pad_array(gz)
+        >>> xy = [x, y]
+        >>> [xp, yp] = pad_coords(xy, shape, nps)
+        >>> [Y, X] = numpy.meshgrid(yp, xp)
+        >>> ypad = Y.ravel()
+        >>> xpad = X.ravel()
 
     """
     coords = []
