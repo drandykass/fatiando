@@ -664,11 +664,9 @@ def pad_coords(xy, shape, nps):
     this function takes a list of coordinate vectors and pads them using the
     same discretization.
 
-    .. note:: The returned list contains n vectors, where n is the number
-        of dimensions.  Each list element is a single vector containing
-        the coordinates of the points in the respective dimension.  See the
-        example below for how to convert to flattened meshgrid-style
-        (similar to the output of :func:`fatiando.gridder.regular`) vectors.
+    .. note:: This function returns a list of arrays in the same format
+    as, for example, :func:`~fatiando.gridder.regular`.  It is a list of
+    flattened meshgrids for each vector in the same order as was input.
 
     Parameters:
 
@@ -676,8 +674,9 @@ def pad_coords(xy, shape, nps):
         List of arrays of coordinates
     * shape : tuple
         Size of original array
-    * nps : tuple
-        Size of padded array
+    * nps : list
+        List of tuples containing the number of elements padded onto each
+            dimension (uses output from :func:`~fatiando.gridder.pad_array`).
 
     Returns:
 
@@ -697,23 +696,11 @@ def pad_coords(xy, shape, nps):
         >>> y.reshape(shape)[0,:]
         array([-20., -16., -12.,  -8.,  -4.,   0.])
         >>> xy = [x, y]
-        >>> [xp, yp] = pad_coords(xy, shape, nps)
-        >>> xp
+        >>> N = pad_coords(xy, shape, nps)
+        >>> N[0].reshape(gzpad.shape)[:,0]
         array([-20., -15., -10.,  -5.,   0.,   5.,  10.,  15.])
-        >>> yp
+        >>> N[1].reshape(gzpad.shape)[0,:]
         array([-24., -20., -16., -12.,  -8.,  -4.,   0.,   4.])
-
-    Convert padded arrays to the flattened meshgrid style
-
-        >>> shape = (5, 6)
-        >>> x, y, z = regular((-10,10,-20,0), shape, z=-25)
-        >>> gz = numpy.zeros(shape)
-        >>> gzpad, nps = pad_array(gz)
-        >>> xy = [x, y]
-        >>> [xp, yp] = pad_coords(xy, shape, nps)
-        >>> [Y, X] = numpy.meshgrid(yp, xp)
-        >>> ypad = Y.ravel()
-        >>> xpad = X.ravel()
 
     """
     coords = []
@@ -726,8 +713,12 @@ def pad_coords(xy, shape, nps):
             coords.append(xy[ii].reshape(shape).transpose().take(0, axis=ii))
         d.append(coords[ii][1] - coords[ii][0])
         coordspad.append(_padcvec(coords[ii], nps[ii], d[ii]))
+    M = numpy.meshgrid(*[a for a in tuple(coordspad)[::-1]])
+    N = []
+    for a in M:
+        N.append(a.ravel())
 
-    return coordspad
+    return N[::-1]
 
 
 def _padcvec(x, n, dx):

@@ -49,8 +49,8 @@ def test_coordinatevec_padding_1d():
     f = prng.rand(72) * 10
     x = np.arange(100, 172)
     fpad, nps = gridder.pad_array(f)
-    xpad = gridder.pad_coords(x, f.shape, nps)
-    assert_almost(xpad[0][nps[0][0]:-nps[0][1]], x)
+    N = gridder.pad_coords(x, f.shape, nps)
+    assert_almost(N[0][nps[0][0]:-nps[0][1]], x)
 
 
 def test_coordinatevec_padding_2d():
@@ -62,9 +62,10 @@ def test_coordinatevec_padding_2d():
     xy.append(x)
     xy.append(y)
     gpad, nps = gridder.pad_array(gz)
-    xyp = gridder.pad_coords(xy, gz.shape, nps)
-    [Yp, Xp] = np.meshgrid(xyp[1], xyp[0])
-    assert_equal(Yp.shape, gpad.shape)
+    N = gridder.pad_coords(xy, gz.shape, nps)
+    Yp = N[1].reshape(gpad.shape)
+    Xp = N[0].reshape(gpad.shape)
+    assert_equal(N[0].reshape(gpad.shape).shape, gpad.shape)
     assert_almost(Yp[nps[0][0]:-nps[0][1], nps[1][0]:-nps[1][1]].ravel(), y)
     assert_almost(Xp[nps[0][0]:-nps[0][1], nps[1][0]:-nps[1][1]].ravel(), x)
 

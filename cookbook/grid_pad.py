@@ -52,14 +52,13 @@ g, _ = gridder.pad_array(gz, padtype='OddReflectionTaper')
 pads.append(g.flatten())
 
 # Get coordinate vectors
-xyp = gridder.pad_coords(xy, gz.shape, nps)
+N = gridder.pad_coords(xy, gz.shape, nps)
 
 shapepad = g.shape
 
 # Generate new meshgrid and plot results
-[Yp, Xp] = np.meshgrid(xyp[1], xyp[0])
-yp = Yp.ravel()
-xp = Xp.ravel()
+yp = N[1]
+xp = N[0]
 titles = ['Original', 'Zero', 'Mean', 'Edge', 'Linear Taper', 'Reflection',
           'Odd Reflection', 'Odd Reflection/Taper']
 mpl.figure(figsize=(17, 9))
