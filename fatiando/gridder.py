@@ -665,8 +665,8 @@ def pad_coords(xy, shape, nps):
     same discretization.
 
     .. note:: This function returns a list of arrays in the same format
-    as, for example, :func:`~fatiando.gridder.regular`.  It is a list of
-    flattened meshgrids for each vector in the same order as was input.
+        as, for example, :func:`~fatiando.gridder.regular`.  It is a list of
+        flattened meshgrids for each vector in the same order as was input.
 
     Parameters:
 
@@ -684,8 +684,6 @@ def pad_coords(xy, shape, nps):
         List of padded coordinate arrays
 
     Examples:
-
-    Construct padded arrays
 
         >>> shape = (5, 6)
         >>> x, y, z = regular((-10,10,-20,0), shape, z=-25)
