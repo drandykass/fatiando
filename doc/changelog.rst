@@ -10,12 +10,11 @@ Version 0.5
 
 **Changes**:
 
-* **Pad Arrays** ``fatiando.gridder``. Added several functions for padding
-  arrays of arbitrary dimension. ``fatiando.gridder.pad_array`` pads an array
-  with a variety of padding and taper options.
-  ``fatiando.gridder.unpad_array`` returns the original, unpadded array.
-  ``fatiando.gridder.padcoords`` pads the coordinate vectors associated with 
-  the arrays padded above. Added Kass in the contributors.
+* Added several functions for padding arrays of arbitrary dimension.
+  ``fatiando.gridder.pad_array`` pads an array with a variety of padding and
+  taper options.  ``fatiando.gridder.unpad_array`` returns the original,
+  unpadded array.  ``fatiando.gridder.pad_coords`` pads the coordinate vectors
+  associated with the arrays padded above. Added Kass in the contributors.
   (`PR 239 <https://github.com/fatiando/fatiando/pull/239>`__)
 * Better navigation for long pages in the docs by adding a sidebar with links
   to subsections.
