@@ -498,6 +498,61 @@ class Sphere(GeometricElement):
         names.extend((p, self.props[p]) for p in sorted(self.props))
         return ' | '.join('%s:%g' % (n, v) for n, v in names)
 
+class HorizontalInfCylinder(GeometricElement):
+    """
+    A 3D infinitely extending horizontal cylinder with uniform density
+        and/or uniform magnetization.
+
+    .. note:: The coordinate system used is x -> North, y -> East and z -> Down
+
+    Parameters:
+
+    * declination : float
+        Declination of cylinder in degrees
+
+    * z : float
+        Depth to centre of cylinder
+
+    * radius : float
+        Radius of cylinder
+
+    * props : dict
+        Physical properties assigned to the cylinder.
+        Ex: ``props={'density':10, 'magnetization':10000}``
+
+    Examples:
+
+        >>> d = 27.2
+        >>> z = 6.9
+        >>> a = 1.
+        >>> c = HorizontalInfCylinder(d, z, a, props={'magnetization':100})
+        >>> c.props['magnetization']
+        100
+        >>> print c.declination
+        27.2
+        >>> print c.z
+        6.9
+        >>> print c.radius
+        1.0
+        >>> c.addprop('temperature', 25.)
+        >>> print c.props['temperature']
+        25.0
+
+    """
+
+    def __init__(self, declination, z, radius, props=None):
+        super().__init__(props)
+        self.declination = float(declination)
+        self.z = float(z)
+        self.radius = float(radius)
+        
+    def __str__(self):
+        """Return a string representation of the cylinder."""
+        names = [('declination', self.declination), ('z', self.z),
+                 ('radius', self.radius)]
+        names.extend((p, self.props[p]) for p in sorted(self.props))
+        return ' | '.join('%s:%g' % (n, v) for n, v in names) 
+
 
 class PolygonalPrism(GeometricElement):
     """
