@@ -510,8 +510,9 @@ class HorizontalInfCylinder(GeometricElement):
     * declination : float
         Declination of cylinder in degrees
 
-    * z : float
-        Depth to centre of cylinder
+    * x, y, z : float
+        Any coordinate at the centre of the cylinder.  z will be constant,
+        but x and y can be any point along the axis of the cylinder.  
 
     * radius : float
         Radius of cylinder
@@ -524,8 +525,11 @@ class HorizontalInfCylinder(GeometricElement):
 
         >>> d = 27.2
         >>> z = 6.9
+        >>> x = 0.
+        >>> y = 1.5
         >>> a = 1.
-        >>> c = HorizontalInfCylinder(d, z, a, props={'magnetization':100})
+        >>> p = {'magnetization':100}
+        >>> c = HorizontalInfCylinder(d, x, y, z, a, p)
         >>> c.props['magnetization']
         100
         >>> print c.declination
@@ -540,9 +544,11 @@ class HorizontalInfCylinder(GeometricElement):
 
     """
 
-    def __init__(self, declination, z, radius, props=None):
+    def __init__(self, declination, x, y, z, radius, props=None):
         super().__init__(props)
         self.declination = float(declination)
+        self.x = float(x)
+        self.y = float(y)
         self.z = float(z)
         self.radius = float(radius)
         
