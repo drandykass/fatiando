@@ -73,6 +73,9 @@ def tf(xp, yp, zp, cyls, inc, dec, pmag=None):
     if pmag is not None:
         pmx, pmy, pmz = pmag
     res = 0
+    b1 = 0
+    b2 = 0
+    b3 = 0
     for cyl in cyls:
         if cyl is None:
             continue
@@ -82,42 +85,14 @@ def tf(xp, yp, zp, cyls, inc, dec, pmag=None):
             mx, my, mz = cyl.props['magnetization']
         else:
             mx, my, mz = pmx, pmy, pmz
-        #Calculate the perpendicular distance vectors
-        # if r is the distance vector, a is any point along the line, p is 
-        # the observation vector, and n is the unit vector along the line
-        # r = - (a - p) + ((a-p)\cdot\hat{n})\hat{n}
-        nx, ny, nz = utils.dircos(0., cyl.declination)
-        tx = cyl.x - xp
-        ty = cyl.y - yp
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        #Convert magnetization to dipole moment per unit length
-        mx = mx * np.pi * cyl.radius**2
-        my = my * np.pi * cyl.radius**2
-        mz = mz * np.pi * cyl.radius**2
-        #Compute B
-        m = np.sqrt(mx**2 + my**2 + mz**2)
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        #Bx = (( 2 * (CM) * mx ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (rx / r)) - (mx / m))
-        #By = (( 2 * (CM) * my ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (ry / r)) - (my / m))
-        #Bz = (( 2 * (CM) * mz ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (rz / r)) - (mz / m))
-        Bx = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
-        By = (( 2 * (CM) * my ) / r**2 ) * ( 2 *
-             (dprod * (ry / r)) - (my / m))
-        Bz = (( 2 * (CM) * mz ) / r**2 ) * ( 2 *
-             (dprod * (rz / r)) - (mz / m))
+        Bx = bx(xp, yp, zp, [cyl])
+        By = by(xp, yp, zp, [cyl])
+        Bz = bz(xp, yp, zp, [cyl])
         #Compute total field anomaly
-        res += (fx*Bx + fy*By + fz*Bz)
-    res*=T2NT
+        b1 += Bx
+        b2 += By
+        b3 += Bz
+    res += (fx*b1 + fy*b2 + fz*b3)
     return res
 
 def bx(xp, yp, zp, cyls, pmag=None):
@@ -176,10 +151,10 @@ def bx(xp, yp, zp, cyls, pmag=None):
         tx = cyl.x - xp
         ty = cyl.y - yp
         tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
+        d1 = tx*nx + ty*ny + tz*nz
+        rx = d1*nx - tx
+        ry = d1*ny - ty
+        rz = d1*nz - tz
         #Convert magnetization to dipole moment per unit length
         mx = mx * np.pi * cyl.radius**2
         my = my * np.pi * cyl.radius**2
@@ -187,12 +162,16 @@ def bx(xp, yp, zp, cyls, pmag=None):
         #Compute B
         m = np.sqrt(mx**2 + my**2 + mz**2)
         r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        #Bx = (( 2 * (CM) * mx ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (rx / r)) - (mx / m))
-        Bx = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
+        dr = (rx**2. + ry**2. + rz**2.)**(-3./2.) * rx * (nx**2. - 1.)
+        dr2 = (2. / r) * dr
+        drx = -nx**2 + 1
+        dry = -1. * nx * ny
+        drz = -1. * nx * nz
+        Bx = 2. * CM * ((mx * rx * dr2) + ((1./r**2) * mx * drx) + 
+             (my * ry * dr2) + ((1./r**2) * my * dry) + (mz * rz * dr2) +
+             ((1./r**2) * mz * drz))
+        #Bx = ((2. * (CM) * mx ) / r**2. ) * (
+        #     (2. * dprod * (rx / r)) - (mx / m))
         B += Bx
     B*=T2NT
     return B
@@ -253,10 +232,10 @@ def by(xp, yp, zp, cyls, pmag=None):
         tx = cyl.x - xp
         ty = cyl.y - yp
         tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
+        d1 = tx*nx + ty*ny + tz*nz
+        rx = d1*nx - tx
+        ry = d1*ny - ty
+        rz = d1*nz - tz
         #Convert magnetization to dipole moment per unit length
         mx = mx * np.pi * cyl.radius**2
         my = my * np.pi * cyl.radius**2
@@ -264,12 +243,15 @@ def by(xp, yp, zp, cyls, pmag=None):
         #Compute B
         m = np.sqrt(mx**2 + my**2 + mz**2)
         r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        By = (( 2 * (CM) * my ) / r**2 ) * ( 2 *
-             (dprod * (ry / r)) - (my / m))
-        #By = (( 2 * (CM) * my ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (ry / r)) - (my / m))
+        dr = (rx**2. + ry**2. + rz**2.)**(-3./2.) * ry * (ny**2. - 1.)
+        dr2 = (2. / r) * dr
+        drx = -1. * nx * ny
+        dry = (-1. * ny**2) + 1
+        drz = -1. * ny * nz
+        By = 2. * CM * ((mx * rx * dr2) + ((1./r**2) * mx * drx) + 
+             (my * ry * dr2) + ((1./r**2) * my * dry) + (mz * rz * dr2) +
+             ((1./r**2) * mz * drz))
+
         B += By
     B*=T2NT
     return B
@@ -330,10 +312,10 @@ def bz(xp, yp, zp, cyls, pmag=None):
         tx = cyl.x - xp
         ty = cyl.y - yp
         tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
+        d1 = tx*nx + ty*ny + tz*nz
+        rx = d1*nx - tx
+        ry = d1*ny - ty
+        rz = d1*nz - tz
         #Convert magnetization to dipole moment per unit length
         mx = mx * np.pi * cyl.radius**2
         my = my * np.pi * cyl.radius**2
@@ -341,17 +323,20 @@ def bz(xp, yp, zp, cyls, pmag=None):
         #Compute B
         m = np.sqrt(mx**2 + my**2 + mz**2)
         r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        Bz = (( 2 * (CM) * mz ) / r**2 ) * ( 2 *
-             (dprod * (rz / r)) - (mz / m))
-        #Bz = (( 2 * (CM) * mz ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (rz / r)) - (mz / m))
+        dr = (rx**2. + ry**2. + rz**2.)**(-3./2.) * rz * (nz**2. - 1.)
+        dr2 = (2. / r) * dr
+        drx = -1. * nx * nz
+        dry = -1. * ny * nz
+        drz = (-1. * nz**2) + 1.
+        Bz = 2. * CM * ((mx * rx * dr2) + ((1./r**2) * mx * drx) + 
+             (my * ry * dr2) + ((1./r**2) * my * dry) + (mz * rz * dr2) +
+             ((1./r**2) * mz * drz))
+
         B += Bz
     B*=T2NT
     return B
 
-def bxx(xp, yp, zp, cyls, pmag=None):
+def bxx(xp, yp, zp, cyls, pmag=None, noise=None):
     """
     The x derivative of the x component of the magnetic induction.
 
@@ -450,48 +435,14 @@ def bxx_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
             mx, my, mz = cyl.props['magnetization']
         else:
             mx, my, mz = pmx, pmy, pmz
-        #Calculate the perpendicular distance vectors
-        # if r is the distance vector, a is any point along the line, p is 
-        # the observation vector, and n is the unit vector along the line
-        # r = - (a - p) + ((a-p)\cdot\hat{n})\hat{n}
-        nx, ny, nz = utils.dircos(0., cyl.declination)
-        tx = cyl.x - xp
-        ty = cyl.y - yp
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        #Convert magnetization to dipole moment per unit length
-        mx = mx * np.pi * cyl.radius**2
-        my = my * np.pi * cyl.radius**2
-        mz = mz * np.pi * cyl.radius**2
-        #Compute B
-        m = np.sqrt(mx**2 + my**2 + mz**2)
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        #Bx = (( 2 * (CM) * mx ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (rx / r)) - (mx / m))
-        Bx1 = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
-        xp = xp - 0.5
-        tx = cyl.x - xp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        Bx2 = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
+        Bx1 = bx(xp,yp,zp,[cyl])
+        Bx2 = bx(xp-0.5,yp,zp,[cyl])
         B1 += Bx1
         B2 += Bx2
     if noise is not None:
-        B1 = utils.contaminate(B1,noise/T2NT)
-        B2 = utils.contaminate(B2,noise/T2NT)
-    B = (B1*T2NT - B2*T2NT) / 0.5
+        B1 = utils.contaminate(B1,noise)
+        B2 = utils.contaminate(B2,noise)
+    B = (B1 - B2) / 0.5
     return B
       
 def bxy_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
@@ -508,48 +459,12 @@ def bxy_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
             mx, my, mz = cyl.props['magnetization']
         else:
             mx, my, mz = pmx, pmy, pmz
-        #Calculate the perpendicular distance vectors
-        # if r is the distance vector, a is any point along the line, p is 
-        # the observation vector, and n is the unit vector along the line
-        # r = - (a - p) + ((a-p)\cdot\hat{n})\hat{n}
-        nx, ny, nz = utils.dircos(0., cyl.declination)
-        tx = cyl.x - xp
-        ty = cyl.y - yp
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        #Convert magnetization to dipole moment per unit length
-        mx = mx * np.pi * cyl.radius**2
-        my = my * np.pi * cyl.radius**2
-        mz = mz * np.pi * cyl.radius**2
-        #Compute B
-        m = np.sqrt(mx**2 + my**2 + mz**2)
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        #Bx = (( 2 * (CM) * mx ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (rx / r)) - (mx / m))
-        Bx1 = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
-        yp = yp - 0.5
-        ty = cyl.y - yp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        Bx2 = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
-        B1 += Bx1
-        B2 += Bx2
+        B1 += bx(xp,yp,zp,[cyl])
+        B2 += bx(xp,yp-0.5,zp,[cyl])
     if noise is not None:
-        B1 = utils.contaminate(B1,noise/T2NT)
-        B2 = utils.contaminate(B2,noise/T2NT)
-    B = (B1*T2NT - B2*T2NT) / 0.5
+        B1 = utils.contaminate(B1,noise)
+        B2 = utils.contaminate(B2,noise)
+    B = (B1 - B2) / 0.5
     return B
 
 def bxz_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
@@ -566,48 +481,12 @@ def bxz_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
             mx, my, mz = cyl.props['magnetization']
         else:
             mx, my, mz = pmx, pmy, pmz
-        #Calculate the perpendicular distance vectors
-        # if r is the distance vector, a is any point along the line, p is 
-        # the observation vector, and n is the unit vector along the line
-        # r = - (a - p) + ((a-p)\cdot\hat{n})\hat{n}
-        nx, ny, nz = utils.dircos(0., cyl.declination)
-        tx = cyl.x - xp
-        ty = cyl.y - yp
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        #Convert magnetization to dipole moment per unit length
-        mx = mx * np.pi * cyl.radius**2
-        my = my * np.pi * cyl.radius**2
-        mz = mz * np.pi * cyl.radius**2
-        #Compute B
-        m = np.sqrt(mx**2 + my**2 + mz**2)
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        #Bx = (( 2 * (CM) * mx ) / cyl.radius**2 ) * ( 2 *
-        #     (dprod * (rx / r)) - (mx / m))
-        Bx1 = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
-        zp = zp - 1.
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        Bx2 = (( 2 * (CM) * mx ) / r**2 ) * ( 2 *
-             (dprod * (rx / r)) - (mx / m))
-        B1 += Bx1
-        B2 += Bx2
+        B1 += bx(xp,yp,zp,[cyl])
+        B2 += bx(xp,yp,zp-1.,[cyl])
     if noise is not None:
-        B1 = utils.contaminate(B1,noise/T2NT)
-        B2 = utils.contaminate(B2,noise/T2NT)
-    B = (B1*T2NT - B2*T2NT) / 1.
+        B1 = utils.contaminate(B1,noise)
+        B2 = utils.contaminate(B2,noise)
+    B = (B1 - B2) / 1.
     return B
 
 def byy_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
@@ -625,46 +504,12 @@ def byy_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
             mx, my, mz = cyl.props['magnetization']
         else:
             mx, my, mz = pmx, pmy, pmz
-        #Calculate the perpendicular distance vectors
-        # if r is the distance vector, a is any point along the line, p is 
-        # the observation vector, and n is the unit vector along the line
-        # r = - (a - p) + ((a-p)\cdot\hat{n})\hat{n}
-        nx, ny, nz = utils.dircos(0., cyl.declination)
-        tx = cyl.x - xp
-        ty = cyl.y - yp
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        #Convert magnetization to dipole moment per unit length
-        mx = mx * np.pi * cyl.radius**2
-        my = my * np.pi * cyl.radius**2
-        mz = mz * np.pi * cyl.radius**2
-        #Compute B
-        m = np.sqrt(mx**2 + my**2 + mz**2)
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        By1 = (( 2 * (CM) * my ) / r**2 ) * ( 2 *
-             (dprod * (ry / r)) - (my / m))
-        yp = yp - 0.1
-        ty = cyl.y - yp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        By2 = (( 2 * (CM) * my ) / r**2 ) * ( 2 *
-             (dprod * (ry / r)) - (my / m))
-        B1 += By1
-        B2 += By2
+        B1 += by(xp,yp,zp,[cyl])
+        B2 += by(xp,yp-0.5,zp,[cyl])
     if noise is not None:
-        B1 = utils.contaminate(B1,noise/T2NT)
-        B2 = utils.contaminate(B2,noise/T2NT)
-    B = (B1*T2NT - B2*T2NT) / 0.1
+        B1 = utils.contaminate(B1,noise)
+        B2 = utils.contaminate(B2,noise)
+    B = (B1 - B2) / 0.5
     return B
 
 def byz_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
@@ -682,46 +527,12 @@ def byz_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
             mx, my, mz = cyl.props['magnetization']
         else:
             mx, my, mz = pmx, pmy, pmz
-        #Calculate the perpendicular distance vectors
-        # if r is the distance vector, a is any point along the line, p is 
-        # the observation vector, and n is the unit vector along the line
-        # r = - (a - p) + ((a-p)\cdot\hat{n})\hat{n}
-        nx, ny, nz = utils.dircos(0., cyl.declination)
-        tx = cyl.x - xp
-        ty = cyl.y - yp
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        #Convert magnetization to dipole moment per unit length
-        mx = mx * np.pi * cyl.radius**2
-        my = my * np.pi * cyl.radius**2
-        mz = mz * np.pi * cyl.radius**2
-        #Compute B
-        m = np.sqrt(mx**2 + my**2 + mz**2)
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        By1 = (( 2 * (CM) * my ) / r**2 ) * ( 2 *
-             (dprod * (ry / r)) - (my / m))
-        zp = zp - 1.
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        By2 = (( 2 * (CM) * my ) / r**2 ) * ( 2 *
-             (dprod * (ry / r)) - (my / m))
-        B1 += By1
-        B2 += By2
+        B1 += by(xp,yp,zp,[cyl])
+        B2 += by(xp,yp,zp-1.0,[cyl])
     if noise is not None:
-        B1 = utils.contaminate(B1,noise/T2NT)
-        B2 = utils.contaminate(B2,noise/T2NT)
-    B = (B1*T2NT - B2*T2NT) / 1.
+        B1 = utils.contaminate(B1,noise)
+        B2 = utils.contaminate(B2,noise)
+    B = (B1 - B2) / 1.
     return B
 
 def bzz_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
@@ -739,45 +550,11 @@ def bzz_numerical(xp, yp, zp, cyls, pmag=None, noise=None):
             mx, my, mz = cyl.props['magnetization']
         else:
             mx, my, mz = pmx, pmy, pmz
-        #Calculate the perpendicular distance vectors
-        # if r is the distance vector, a is any point along the line, p is 
-        # the observation vector, and n is the unit vector along the line
-        # r = - (a - p) + ((a-p)\cdot\hat{n})\hat{n}
-        nx, ny, nz = utils.dircos(0., cyl.declination)
-        tx = cyl.x - xp
-        ty = cyl.y - yp
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        #Convert magnetization to dipole moment per unit length
-        mx = mx * np.pi * cyl.radius**2
-        my = my * np.pi * cyl.radius**2
-        mz = mz * np.pi * cyl.radius**2
-        #Compute B
-        m = np.sqrt(mx**2 + my**2 + mz**2)
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        Bz1 = (( 2 * (CM) * mz ) / r**2 ) * ( 2 *
-             (dprod * (rz / r)) - (mz / m))
-        zp = zp - 1.
-        tz = cyl.z - zp
-        dotprod = tx*nx + ty*ny + tz*nz
-        rx = dotprod*nx - tx
-        ry = dotprod*ny - ty
-        rz = dotprod*nz - tz
-        r = np.sqrt(rx**2 + ry**2 + rz**2)
-        dprod = (((mx / m) * (rx / r)) + ((my / m) * (ry / r)) + 
-                ((mz / m) * (rz / r)))
-        Bz2 = (( 2 * (CM) * mz ) / r**2 ) * ( 2 *
-             (dprod * (rz / r)) - (mz / m))
-        B1 += Bz1
-        B2 += Bz2
+        B1 += bz(xp,yp,zp,[cyl])
+        B2 += bz(xp,yp,zp-1.0,[cyl])
     if noise is not None:
-        B1 = utils.contaminate(B1,noise/T2NT)
-        B2 = utils.contaminate(B2,noise/T2NT)
-    B = (B1*T2NT - B2*T2NT) / 1.
+        B1 = utils.contaminate(B1,noise)
+        B2 = utils.contaminate(B2,noise)
+    B = (B1 - B2) / 1.
     return B
 
